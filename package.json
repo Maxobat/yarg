@@ -1,0 +1,14 @@
+{
+  "name": "yarg",
+  "version": "1.0.0",
+  "description": "A dependency locator.",
+  "main": "index.js",
+  "author": "Max Pennington",
+  "license": "MIT",
+  "bin": {
+    "yarg": "bin/yarg.js"
+  },
+  "dependencies": {
+    "bluebird": "^3.4.6"
+  }
+}
