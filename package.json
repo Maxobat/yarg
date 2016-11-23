@@ -1,6 +1,6 @@
 {
   "name": "yarg",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A dependency locator.",
   "main": "index.js",
   "author": "Max Pennington",
