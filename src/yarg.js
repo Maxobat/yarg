@@ -4,18 +4,32 @@ const readFile = Bluebird.promisify(fs.readFile);
 const readdir = Bluebird.promisify(fs.readdir);
 
 class Yarg {
-    constructor(props) {
-        this.ignore = props.ignore;
+    constructor({ include }) {
+        this.ignore = ['node_modules'];
+        this.includedExtensions = include || [];
         this.matches = [];
     }
 
     start() {
+        this.resolveIncludedExtensions();
         readFile('package.json', 'utf-8').then(res => {
             this.defineDependencies(JSON.parse(res));
             this.search('./').then(() => {
                 this.processOutput();
             });
         });
+    }
+
+    resolveIncludedExtensions() {
+        this.includedExtensions = this.includedExtensions.map(el => {
+            if (el.startsWith('.')) {
+                el = el.substr(1);
+            }
+
+            return el;
+        });
+
+        this.includedExtensions.push('js');
     }
 
     defineDependencies(config) {
@@ -48,7 +62,11 @@ class Yarg {
                                 resolve(this.getPromise());
                             }
                         } else {
-                            resolve(this.locateTarget(file));
+                            if (this.validateFile(path)) {
+                                resolve(this.locateTarget(file));
+                            } else {
+                                resolve(this.getPromise());
+                            }
                         }
                     });
                 }));
@@ -66,9 +84,20 @@ class Yarg {
         return dir += child;
     }
 
+    validateFile(filePath) {
+        const extensionPostition = filePath.lastIndexOf('.');
+        const extension = filePath.substr(extensionPostition).substr(1);
+
+        if (this.includedExtensions.indexOf(extension) !== -1) {
+            console.log(filePath);
+            return true;
+        }
+
+        return false;
+    }
+
     locateTarget(output) {
         output.replace(/require\(['"](?!\.\/*)([\w-\.\/]+)/g, (m, group) => {
-
             if ((this.owned.indexOf(group) === -1) && this.matches.indexOf(group) === -1 && !this.isCore(group)) {
                 this.matches.push(group);
             }
