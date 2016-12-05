@@ -98,8 +98,10 @@ class Yarg {
 
     locateTarget(output) {
         output.replace(/(?!\.)\srequire\(['"](?!\.\/*)([\w-\.\/]+)/g, (m, group) => {
-            if ((this.owned.indexOf(group) === -1) && this.matches.indexOf(group) === -1 && !this.isCore(group)) {
-                this.matches.push(group.split('/')[0]);
+            const match = group.split('/')[0];
+
+            if ((this.owned.indexOf(match) === -1) && this.matches.indexOf(match) === -1 && !this.isCore(match)) {
+                this.matches.push(match);
             }
         });
     }
