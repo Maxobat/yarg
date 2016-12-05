@@ -2,6 +2,7 @@ const fs = require('fs');
 const Bluebird = require('bluebird');
 const readFile = Bluebird.promisify(fs.readFile);
 const readdir = Bluebird.promisify(fs.readdir);
+const { copy } = require('copy-paste');
 
 class Yarg {
     constructor({ include }) {
@@ -89,7 +90,6 @@ class Yarg {
         const extension = filePath.substr(extensionPostition).substr(1);
 
         if (this.includedExtensions.indexOf(extension) !== -1) {
-            console.log(filePath);
             return true;
         }
 
@@ -109,11 +109,19 @@ class Yarg {
     }
 
     processOutput() {
+        console.log('\n');
+
         if (this.matches.length) {
-            console.log('\x1b[36m', 'Run the following:', '\x1b[0m');
-            console.log(`yarn add ${this.matches.join(' ')}`);
+            const output = `yarn add ${this.matches.join(' ')}`;
+
+            copy(output, () => {
+                console.log('\x1b[36m', 'The following has been copied to your clipboard:', '\x1b[0m\n');
+                console.log(`   ${output}`);
+                console.log('\n');
+            });
         } else {
-            console.log('\x1b[36m', 'Nothing found. You are all set!', '\x1b[0m');
+            console.log('\x1b[36m', '   Nothing found. You are all set!', '\x1b[0m');
+            console.log('\n');
         }
     }
 
