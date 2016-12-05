@@ -3,21 +3,26 @@ const Bluebird = require('bluebird');
 const readFile = Bluebird.promisify(fs.readFile);
 const readdir = Bluebird.promisify(fs.readdir);
 const { copy } = require('copy-paste');
+const onNpm = require('npm-name');
 
 class Yarg {
     constructor({ include }) {
         this.ignore = ['node_modules'];
         this.includedExtensions = include || [];
         this.matches = [];
+        this.unusable = [];
+        this.pending = this.getPromise();
     }
 
     start() {
         this.resolveIncludedExtensions();
         readFile('package.json', 'utf-8').then(res => {
             this.defineDependencies(JSON.parse(res));
-            this.search('./').then(() => {
-                this.processOutput();
-            });
+            this.search('./')
+                .then(() => this.pending)
+                .then(() => {
+                    this.processOutput();
+                });
         });
     }
 
@@ -100,8 +105,21 @@ class Yarg {
         output.replace(/(?!\.)\srequire\(['"](?!\.\/*)([\w-\.\/]+)/g, (m, group) => {
             const match = group.split('/')[0];
 
-            if ((this.owned.indexOf(match) === -1) && this.matches.indexOf(match) === -1 && !this.isCore(match)) {
-                this.matches.push(match);
+            if ((this.owned.indexOf(match) === -1) && !this.isCore(match)) {
+                this.pending = this.pending.then(() => onNpm(match).then(notAvailable => {
+                    if (!notAvailable) {
+                        if (this.matches.indexOf(match) === -1) {
+                            this.matches.push(match);
+                        }
+                    } else {
+                        if (this.unusable.length === 0) {
+                            console.log('\n');
+                        }
+
+                        console.log(`|-- The package "${match}" is used in your application, but is not on NPM.`);
+                        this.unusable.push(match);
+                    }
+                }));
             }
         });
     }
@@ -118,11 +136,11 @@ class Yarg {
 
             copy(output, () => {
                 console.log('\x1b[36m', 'The following has been copied to your clipboard:', '\x1b[0m\n');
-                console.log(`   ${output}`);
+                console.log(output);
                 console.log('\n');
             });
-        } else {
-            console.log('\x1b[36m', '   Nothing found. You are all set!', '\x1b[0m');
+        } else if (this.unusable.length === 0) {
+            console.log('\x1b[36m', 'Nothing found. You are all set!', '\x1b[0m');
             console.log('\n');
         }
     }
